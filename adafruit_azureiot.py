@@ -52,7 +52,7 @@ class iot_hub:
     Provides access to Azure IoT Hub.
     https://docs.microsoft.com/en-us/rest/api/iothub/
     """
-    def __init__(wifi_manager, iot_hub_name, sas_token):
+    def __init__(self, wifi_manager, iot_hub_name, sas_token):
         """ Creates an instance of an Azure IoT Hub Client.
         :param wifi_manager: WiFiManager object from ESPSPI_WiFiManager
         :param str iot_hub_name: Name of your IoT Hub
@@ -66,25 +66,41 @@ class iot_hub:
             raise TypeError("This library requires a WiFiManager object.")
         self._iot_hub_url = "https://{0}.azure-devices.net".format(iot_hub_name)
         self._sas_token = sas_token
+        self.azure_header = {"Authorization":'SharedAccessSignature sr=azure-airlift-test-hub.azure-devices.net&sig=4WbbY2AWdwJJzsxKKNliRnQ5mzX87JW8ToEoc%2FezuoU%3D&skn=iothubowner&se=1557550171'}
 
     # HTTP Request Methods
     def _post(self, path, payload):
-        """POSTs data to an Azure IoT Hub
-        :param str path: Formatted URL
-        :param json payload: JSON Data
-        """
         response = self.wifi.post(
             path,
             json=payload,
-            headers=self._create_headers(self._aio_headers[0]))
-        self._handle_error(response)
+            headers=self.azure_header)
         return response.json()
 
+    def _get(self, path, payload):
+        response = self.wifi.get(
+            path,
+            json=payload,
+            headers=self.azure_header)
+        return response.json()
 
     # Device Messaging 
     # D2C: Device-to-Cloud
+    def send_device_message(self, device_id, message):
+        """Sends a device-to-cloud message.
+        :param string device_id: Device Identifier.
+        :param string message: Message.
+        """
+        path = "{0}/devices/{1}/messages/events?api-version={2}".format(self._iot_hub_url, device_id, AZURE_API_VERSION)
+        self._post(path, message)
+
     # C2D: Cloud-to-Device
 
     # IoT Hub Service
+    def get_devices(self):
+        """Retrieve devices from the identity registry of your IoT hub.
+        """
+        path = "https://{0}/devices/?api-version={1}".format(self._iot_hub_url, AZURE_API_VERSION)
+        self._get(path)
+
 
     # IoT Hub Resource Provider
